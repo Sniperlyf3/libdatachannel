@@ -87,6 +87,11 @@ struct RTC_CPP_EXPORT Configuration {
 
 	// Local maximum message size for Data Channels
 	optional<size_t> maxMessageSize;
+
+	optional<int> icePacTimeout;          // libjuice only
+	optional<int> consentTimeout;         // libjuice only
+	optional<int> consentCheckPeriod;     // libjuice only
+	optional<int> stunCandidateKeepalive; // libjuice only
 };
 
 #ifdef RTC_ENABLE_WEBSOCKET

@@ -122,6 +122,15 @@ IceTransport::IceTransport(const Configuration &config, candidate_callback candi
 		jconfig.bind_address = config.bindAddress->c_str();
 	}
 
+	if (config.stunCandidateKeepalive)
+		jconfig.stun_keepalive_period = config.stunCandidateKeepalive;
+	if (config.icePacTimeout)
+		jconfig.ice_pac_timeout = config.icePacTimeout;
+	if (config.consentTimeout)
+		jconfig.consent_timeout = config.consentTimeout;
+	if (config.consentCheckPeriod)
+		jconfig.consent_check_period = config.consentCheckPeriod;
+
 	// Port range
 	if (config.portRangeBegin > 1024 ||
 	    (config.portRangeEnd != 0 && config.portRangeEnd != 65535)) {
