@@ -123,13 +123,13 @@ IceTransport::IceTransport(const Configuration &config, candidate_callback candi
 	}
 
 	if (config.stunCandidateKeepalive)
-		jconfig.stun_keepalive_period = config.stunCandidateKeepalive;
+		jconfig.stun_keepalive_period = config.stunCandidateKeepalive.value();
 	if (config.icePacTimeout)
-		jconfig.ice_pac_timeout = config.icePacTimeout;
+		jconfig.ice_pac_timeout = config.icePacTimeout.value();
 	if (config.consentTimeout)
-		jconfig.consent_timeout = config.consentTimeout;
+		jconfig.consent_timeout = config.consentTimeout.value();
 	if (config.consentCheckPeriod)
-		jconfig.consent_check_period = config.consentCheckPeriod;
+		jconfig.consent_check_period = config.consentCheckPeriod.value();
 
 	// Port range
 	if (config.portRangeBegin > 1024 ||
