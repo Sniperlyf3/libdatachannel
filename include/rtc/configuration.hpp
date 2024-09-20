@@ -93,6 +93,11 @@ struct RTC_CPP_EXPORT Configuration {
 	optional<string> certificatePemFile;
 	optional<string> keyPemFile;
 	optional<string> keyPemPass;
+
+	optional<int> icePacTimeout;          // libjuice only
+	optional<int> consentTimeout;         // libjuice only
+	optional<int> consentCheckPeriod;     // libjuice only
+	optional<int> stunCandidateKeepalive; // libjuice only
 };
 
 #ifdef RTC_ENABLE_WEBSOCKET

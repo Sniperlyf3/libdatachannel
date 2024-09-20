@@ -122,6 +122,15 @@ IceTransport::IceTransport(const Configuration &config, candidate_callback candi
 		jconfig.bind_address = config.bindAddress->c_str();
 	}
 
+	if (config.stunCandidateKeepalive)
+		jconfig.stun_keepalive_period = config.stunCandidateKeepalive.value();
+	if (config.icePacTimeout)
+		jconfig.ice_pac_timeout = config.icePacTimeout.value();
+	if (config.consentTimeout)
+		jconfig.consent_timeout = config.consentTimeout.value();
+	if (config.consentCheckPeriod)
+		jconfig.consent_check_period = config.consentCheckPeriod.value();
+
 	// Port range
 	if (config.portRangeBegin > 1024 ||
 	    (config.portRangeEnd != 0 && config.portRangeEnd != 65535)) {
@@ -581,7 +590,8 @@ IceTransport::IceTransport(const Configuration &config, candidate_callback candi
 }
 
 void IceTransport::setIceAttributes([[maybe_unused]] string uFrag, [[maybe_unused]] string pwd) {
-	PLOG_WARNING << "Setting custom ICE attributes is not supported with libnice, please use libjuice";
+	PLOG_WARNING
+	    << "Setting custom ICE attributes is not supported with libnice, please use libjuice";
 }
 
 void IceTransport::addIceServer(IceServer server) {

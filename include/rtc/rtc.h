@@ -194,10 +194,14 @@ typedef struct {
 	bool enableIceUdpMux; // libjuice only
 	bool disableAutoNegotiation;
 	bool forceMediaTransport;
-	uint16_t portRangeBegin; // 0 means automatic
-	uint16_t portRangeEnd;   // 0 means automatic
-	int mtu;                 // <= 0 means automatic
-	int maxMessageSize;      // <= 0 means default
+	uint16_t portRangeBegin;    // 0 means automatic
+	uint16_t portRangeEnd;      // 0 means automatic
+	int mtu;                    // <= 0 means automatic
+	int maxMessageSize;         // <= 0 means default
+	int icePacTimeout;          // libjuice only, 0 means automatic
+	int consentTimeout;         // libjuice only, 0 means automatic
+	int consentCheckPeriod;     // libjuice only, 0 means automatic
+	int stunCandidateKeepalive; // libjuice only, 0 means automatic
 } rtcConfiguration;
 
 RTC_C_EXPORT int rtcCreatePeerConnection(const rtcConfiguration *config); // returns pc id

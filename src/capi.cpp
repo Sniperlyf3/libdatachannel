@@ -394,6 +394,15 @@ int rtcCreatePeerConnection(const rtcConfiguration *config) {
 		if (config->proxyServer)
 			c.proxyServer.emplace(config->proxyServer);
 
+		if (config->stunCandidateKeepalive != 0)
+			c.stunCandidateKeepalive = config->stunCandidateKeepalive;
+		if (config->icePacTimeout != 0)
+			c.icePacTimeout = config->icePacTimeout;
+		if (config->consentCheckPeriod != 0)
+			c.consentCheckPeriod = config->consentCheckPeriod;
+		if (config->consentTimeout != 0)
+			c.consentTimeout = config->consentTimeout;
+
 		if (config->bindAddress)
 			c.bindAddress = string(config->bindAddress);
 
@@ -910,7 +919,8 @@ int rtcCreateDataChannelEx(int pc, const char *label, const rtcDataChannelInit *
 			dci.reliability.unordered = reliability->unordered;
 			if (reliability->unreliable) {
 				if (reliability->maxPacketLifeTime > 0)
-					dci.reliability.maxPacketLifeTime.emplace(milliseconds(reliability->maxPacketLifeTime));
+					dci.reliability.maxPacketLifeTime.emplace(
+					    milliseconds(reliability->maxPacketLifeTime));
 				else
 					dci.reliability.maxRetransmits.emplace(reliability->maxRetransmits);
 			}
@@ -974,9 +984,10 @@ int rtcGetDataChannelReliability(int dc, rtcReliability *reliability) {
 		Reliability dcr = dataChannel->reliability();
 		std::memset(reliability, 0, sizeof(*reliability));
 		reliability->unordered = dcr.unordered;
-		if(dcr.maxPacketLifeTime) {
+		if (dcr.maxPacketLifeTime) {
 			reliability->unreliable = true;
-			reliability->maxPacketLifeTime = static_cast<unsigned int>(dcr.maxPacketLifeTime->count());
+			reliability->maxPacketLifeTime =
+			    static_cast<unsigned int>(dcr.maxPacketLifeTime->count());
 		} else if (dcr.maxRetransmits) {
 			reliability->unreliable = true;
 			reliability->maxRetransmits = *dcr.maxRetransmits;
@@ -1227,8 +1238,8 @@ int rtcSetH264Packetizer(int tr, const rtcPacketizerInit *init) {
 		emplaceRtpConfig(rtpConfig, tr);
 		// create packetizer
 		auto nalSeparator = init ? init->nalSeparator : RTC_NAL_SEPARATOR_LENGTH;
-		auto maxFragmentSize = init && init->maxFragmentSize ? init->maxFragmentSize
-		                                                     : RTC_DEFAULT_MAX_FRAGMENT_SIZE;
+		auto maxFragmentSize =
+		    init && init->maxFragmentSize ? init->maxFragmentSize : RTC_DEFAULT_MAX_FRAGMENT_SIZE;
 		auto packetizer = std::make_shared<H264RtpPacketizer>(
 		    static_cast<rtc::NalUnit::Separator>(nalSeparator), rtpConfig, maxFragmentSize);
 		track->setMediaHandler(packetizer);
@@ -1243,8 +1254,8 @@ int rtcSetH265Packetizer(int tr, const rtcPacketizerInit *init) {
 		auto rtpConfig = createRtpPacketizationConfig(init);
 		// create packetizer
 		auto nalSeparator = init ? init->nalSeparator : RTC_NAL_SEPARATOR_LENGTH;
-		auto maxFragmentSize = init && init->maxFragmentSize ? init->maxFragmentSize
-		                                                     : RTC_DEFAULT_MAX_FRAGMENT_SIZE;
+		auto maxFragmentSize =
+		    init && init->maxFragmentSize ? init->maxFragmentSize : RTC_DEFAULT_MAX_FRAGMENT_SIZE;
 		auto packetizer = std::make_shared<H265RtpPacketizer>(
 		    static_cast<rtc::NalUnit::Separator>(nalSeparator), rtpConfig, maxFragmentSize);
 		track->setMediaHandler(packetizer);
@@ -1258,8 +1269,8 @@ int rtcSetAV1Packetizer(int tr, const rtcPacketizerInit *init) {
 		// create RTP configuration
 		auto rtpConfig = createRtpPacketizationConfig(init);
 		// create packetizer
-		auto maxFragmentSize = init && init->maxFragmentSize ? init->maxFragmentSize
-		                                                     : RTC_DEFAULT_MAX_FRAGMENT_SIZE;
+		auto maxFragmentSize =
+		    init && init->maxFragmentSize ? init->maxFragmentSize : RTC_DEFAULT_MAX_FRAGMENT_SIZE;
 		auto packetization = init->obuPacketization == RTC_OBU_PACKETIZED_TEMPORAL_UNIT
 		                         ? AV1RtpPacketizer::Packetization::TemporalUnit
 		                         : AV1RtpPacketizer::Packetization::Obu;
@@ -1524,7 +1535,7 @@ int rtcCreateWebSocketEx(const char *url, const rtcWsConfiguration *config) {
 		else if (config->maxOutstandingPings < 0)
 			c.maxOutstandingPings = 0; // setting to 0 disables, not setting keeps default
 
-		if(config->maxMessageSize > 0)
+		if (config->maxMessageSize > 0)
 			c.maxMessageSize = size_t(config->maxMessageSize);
 
 		auto webSocket = std::make_shared<WebSocket>(std::move(c));
@@ -1582,7 +1593,7 @@ RTC_C_EXPORT int rtcCreateWebSocketServer(const rtcWsServerConfiguration *config
 		c.keyPemPass = config->keyPemPass ? make_optional(string(config->keyPemPass)) : nullopt;
 		c.bindAddress = config->bindAddress ? make_optional(string(config->bindAddress)) : nullopt;
 
-		if(config->maxMessageSize > 0)
+		if (config->maxMessageSize > 0)
 			c.maxMessageSize = size_t(config->maxMessageSize);
 
 		auto webSocketServer = std::make_shared<WebSocketServer>(std::move(c));
