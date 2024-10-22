@@ -61,10 +61,6 @@ PeerConnection::SignalingState PeerConnection::signalingState() const {
 	return impl()->signalingState;
 }
 
-bool PeerConnection::negotiationNeeded() const {
-	return impl()->negotiationNeeded();
-}
-
 optional<Description> PeerConnection::localDescription() const {
 	return impl()->localDescription();
 }
@@ -80,7 +76,7 @@ bool PeerConnection::hasMedia() const {
 	return local && local->hasAudioOrVideo();
 }
 
-void PeerConnection::setLocalDescription(Description::Type type, LocalDescriptionInit init) {
+void PeerConnection::setLocalDescription(Description::Type type) {
 	std::unique_lock signalingLock(impl()->signalingMutex);
 	PLOG_VERBOSE << "Setting local description, type=" << Description::typeToString(type);
 
@@ -100,6 +96,12 @@ void PeerConnection::setLocalDescription(Description::Type type, LocalDescriptio
 			type = Description::Type::Answer;
 		else
 			type = Description::Type::Offer;
+	}
+
+	// Only a local offer resets the negotiation needed flag
+	if (type == Description::Type::Offer && !impl()->negotiationNeeded.exchange(false)) {
+		PLOG_DEBUG << "No negotiation needed";
+		return;
 	}
 
 	// Get the new signaling state
@@ -138,22 +140,11 @@ void PeerConnection::setLocalDescription(Description::Type type, LocalDescriptio
 	if (!iceTransport)
 		return; // closed
 
-	if (init.iceUfrag && init.icePwd) {
-		PLOG_DEBUG << "Using custom ICE attributes, ufrag=\"" << init.iceUfrag.value() << "\", pwd=\"" << init.icePwd.value() << "\"";
-		iceTransport->setIceAttributes(init.iceUfrag.value(), init.icePwd.value());
-	}
-
 	Description local = iceTransport->getLocalDescription(type);
 	impl()->processLocalDescription(std::move(local));
 
 	impl()->changeSignalingState(newSignalingState);
 	signalingLock.unlock();
-
-	if (!impl()->config.disableAutoNegotiation && newSignalingState == SignalingState::Stable) {
-		// We might need to make a new offer
-		if (impl()->negotiationNeeded())
-			setLocalDescription(Description::Type::Offer);
-	}
 
 	if (impl()->gatheringState == GatheringState::New && !impl()->config.disableAutoGathering) {
 		iceTransport->gatherLocalCandidates(impl()->localBundleMid());
@@ -243,6 +234,7 @@ void PeerConnection::setRemoteDescription(Description description) {
 
 	// Candidates will be added at the end, extract them for now
 	auto remoteCandidates = description.extractCandidates();
+	auto type = description.type();
 
 	auto iceTransport = impl()->initIceTransport();
 	if (!iceTransport)
@@ -254,26 +246,14 @@ void PeerConnection::setRemoteDescription(Description description) {
 	impl()->changeSignalingState(newSignalingState);
 	signalingLock.unlock();
 
+	if (type == Description::Type::Offer) {
+		// This is an offer, we need to answer
+		if (!impl()->config.disableAutoNegotiation)
+			setLocalDescription(Description::Type::Answer);
+	}
+
 	for (const auto &candidate : remoteCandidates)
 		addRemoteCandidate(candidate);
-
-	if (!impl()->config.disableAutoNegotiation) {
-		switch (newSignalingState) {
-		case SignalingState::Stable:
-			// We might need to make a new offer
-			if (impl()->negotiationNeeded())
-				setLocalDescription(Description::Type::Offer);
-			break;
-
-		case SignalingState::HaveRemoteOffer:
-			// We need to answer
-			setLocalDescription(Description::Type::Answer);
-			break;
-
-		default:
-			break;
-		}
-	}
 }
 
 void PeerConnection::addRemoteCandidate(Candidate candidate) {
@@ -304,11 +284,13 @@ shared_ptr<DataChannel> PeerConnection::createDataChannel(string label, DataChan
 	auto channelImpl = impl()->emplaceDataChannel(std::move(label), std::move(init));
 	auto channel = std::make_shared<DataChannel>(channelImpl);
 
-	if (!impl()->config.disableAutoNegotiation && impl()->signalingState.load() == SignalingState::Stable) {
-		// We might need to make a new offer
-		if (impl()->negotiationNeeded())
-			setLocalDescription(Description::Type::Offer);
-	}
+	// Renegotiation is needed iff the current local description does not have application
+	auto local = impl()->localDescription();
+	if (!local || !local->hasApplication())
+		impl()->negotiationNeeded = true;
+
+	if (!impl()->config.disableAutoNegotiation)
+		setLocalDescription();
 
 	return channel;
 }
@@ -322,6 +304,9 @@ void PeerConnection::onDataChannel(
 std::shared_ptr<Track> PeerConnection::addTrack(Description::Media description) {
 	auto trackImpl = impl()->emplaceTrack(std::move(description));
 	auto track = std::make_shared<Track>(trackImpl);
+
+	// Renegotiation is needed for the new or updated track
+	impl()->negotiationNeeded = true;
 
 	return track;
 }
@@ -380,10 +365,6 @@ size_t PeerConnection::bytesReceived() {
 optional<std::chrono::milliseconds> PeerConnection::rtt() {
 	auto sctpTransport = impl()->getSctpTransport();
 	return sctpTransport ? sctpTransport->rtt() : nullopt;
-}
-
-CertificateFingerprint PeerConnection::remoteFingerprint() {
-	return impl()->remoteFingerprint();
 }
 
 std::ostream &operator<<(std::ostream &out, PeerConnection::State state) {

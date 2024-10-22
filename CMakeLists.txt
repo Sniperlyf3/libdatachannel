@@ -23,7 +23,6 @@ option(NO_TESTS "Disable tests build" OFF)
 option(WARNINGS_AS_ERRORS "Treat warnings as errors" OFF)
 option(CAPI_STDCALL "Set calling convention of C API callbacks stdcall" OFF)
 option(SCTP_DEBUG "Enable SCTP debugging output to verbose log" OFF)
-option(RTC_UPDATE_VERSION_HEADER "Enable updating the version header" OFF)
 
 if (USE_GNUTLS AND USE_MBEDTLS)
 	message(FATAL_ERROR "Both USE_MBEDTLS and USE_GNUTLS cannot be enabled at the same time")
@@ -83,12 +82,12 @@ set(LIBDATACHANNEL_SOURCES
 	${CMAKE_CURRENT_SOURCE_DIR}/src/h265rtppacketizer.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/h265nalunit.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/av1rtppacketizer.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/nalunit.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/rtcpnackresponder.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/rtp.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/capi.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/plihandler.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/pacinghandler.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/src/rembhandler.cpp
 )
 
 set(LIBDATACHANNEL_HEADERS
@@ -121,11 +120,11 @@ set(LIBDATACHANNEL_HEADERS
 	${CMAKE_CURRENT_SOURCE_DIR}/include/rtc/h265rtppacketizer.hpp
 	${CMAKE_CURRENT_SOURCE_DIR}/include/rtc/h265nalunit.hpp
 	${CMAKE_CURRENT_SOURCE_DIR}/include/rtc/av1rtppacketizer.hpp
+	${CMAKE_CURRENT_SOURCE_DIR}/include/rtc/nalunit.hpp
 	${CMAKE_CURRENT_SOURCE_DIR}/include/rtc/rtcpnackresponder.hpp
 	${CMAKE_CURRENT_SOURCE_DIR}/include/rtc/utils.hpp
 	${CMAKE_CURRENT_SOURCE_DIR}/include/rtc/plihandler.hpp
 	${CMAKE_CURRENT_SOURCE_DIR}/include/rtc/pacinghandler.hpp
-	${CMAKE_CURRENT_SOURCE_DIR}/include/rtc/rembhandler.hpp
 	${CMAKE_CURRENT_SOURCE_DIR}/include/rtc/version.h
 )
 
@@ -261,12 +260,10 @@ else()
 	add_library(Usrsctp::Usrsctp ALIAS usrsctp)
 endif()
 
-if(RTC_UPDATE_VERSION_HEADER)
-	configure_file (
-		${PROJECT_SOURCE_DIR}/cmake/version.h.in
-		${CMAKE_CURRENT_SOURCE_DIR}/include/rtc/version.h
-	)
-endif()
+configure_file (
+    ${PROJECT_SOURCE_DIR}/cmake/version.h.in
+	${CMAKE_CURRENT_SOURCE_DIR}/include/rtc/version.h
+)
 
 add_library(datachannel SHARED
 	${LIBDATACHANNEL_SOURCES}
@@ -477,24 +474,20 @@ install(
 	DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LibDataChannel
 )
 
+# Export config
+install(
+	FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/LibDataChannelConfig.cmake
+	DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LibDataChannel
+)
+
+# Export config version
 include(CMakePackageConfigHelpers)
-configure_package_config_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/LibDataChannelConfig.cmake.in
-    ${CMAKE_BINARY_DIR}/LibDataChannelConfig.cmake
-    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LibDataChannel
-    NO_SET_AND_CHECK_MACRO
-    NO_CHECK_REQUIRED_COMPONENTS_MACRO
-)
 write_basic_package_version_file(
-    ${CMAKE_BINARY_DIR}/LibDataChannelConfigVersion.cmake
-    VERSION ${PROJECT_VERSION}
-    COMPATIBILITY SameMajorVersion
-)
-# Export config and version files
-install(FILES
-	${CMAKE_BINARY_DIR}/LibDataChannelConfig.cmake
 	${CMAKE_BINARY_DIR}/LibDataChannelConfigVersion.cmake
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LibDataChannel)
+	VERSION ${PROJECT_VERSION}
+	COMPATIBILITY SameMajorVersion)
+install(FILES ${CMAKE_BINARY_DIR}/LibDataChannelConfigVersion.cmake
+	DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/LibDataChannel)
 
 # Tests
 if(NOT NO_TESTS)
