@@ -394,14 +394,10 @@ int rtcCreatePeerConnection(const rtcConfiguration *config) {
 		if (config->proxyServer)
 			c.proxyServer.emplace(config->proxyServer);
 
-		if (config->stunCandidateKeepalive != 0)
-			c.stunCandidateKeepalive = config->stunCandidateKeepalive;
-		if (config->icePacTimeout != 0)
-			c.icePacTimeout = config->icePacTimeout;
-		if (config->consentCheckPeriod != 0)
-			c.consentCheckPeriod = config->consentCheckPeriod;
-		if (config->consentTimeout != 0)
-			c.consentTimeout = config->consentTimeout;
+		c.stunCandidateKeepalive = config->stunCandidateKeepalive;
+		c.icePacTimeout = config->icePacTimeout;
+		c.consentCheckPeriod = config->consentCheckPeriod;
+		c.consentTimeout = config->consentTimeout;
 
 		if (config->bindAddress)
 			c.bindAddress = string(config->bindAddress);
@@ -681,11 +677,6 @@ int rtcGetSelectedCandidatePair(int pc, char *local, int localSize, char *remote
 
 		return std::max(localRet, remoteRet);
 	});
-}
-
-bool rtcIsNegotiationNeeded(int pc) {
-	return wrap([&] { return getPeerConnection(pc)->negotiationNeeded() ? 0 : 1; }) == 0 ? true
-	                                                                                     : false;
 }
 
 int rtcGetMaxDataChannelStream(int pc) {
@@ -1347,18 +1338,6 @@ int rtcChainPliHandler(int tr, rtcPliHandlerCallbackFunc cb) {
 	});
 }
 
-int rtcChainRembHandler(int tr, rtcRembHandlerCallbackFunc cb) {
-	return wrap([&] {
-		auto track = getTrack(tr);
-		auto handler = std::make_shared<RembHandler>([tr, cb](unsigned int bitrate) {
-			if (auto ptr = getUserPointer(tr))
-				cb(tr, bitrate, *ptr);
-		});
-		track->chainMediaHandler(handler);
-		return RTC_ERR_SUCCESS;
-	});
-}
-
 int rtcTransformSecondsToTimestamp(int id, double seconds, uint32_t *timestamp) {
 	return wrap([&] {
 		auto config = getRtpConfig(id);
@@ -1456,7 +1435,7 @@ int rtcGetSsrcsForType(const char *mediaType, const char *sdp, uint32_t *buffer,
 		auto oldSDP = string(sdp);
 		auto description = Description(oldSDP, "unspec");
 		auto mediaCount = description.mediaCount();
-		for (int i = 0; i < mediaCount; i++) {
+		for (unsigned int i = 0; i < mediaCount; i++) {
 			if (std::holds_alternative<Description::Media *>(description.media(i))) {
 				auto media = std::get<Description::Media *>(description.media(i));
 				auto currentMediaType = lowercased(media->type());
@@ -1477,7 +1456,7 @@ int rtcSetSsrcForType(const char *mediaType, const char *sdp, char *buffer, cons
 		auto prevSDP = string(sdp);
 		auto description = Description(prevSDP, "unspec");
 		auto mediaCount = description.mediaCount();
-		for (int i = 0; i < mediaCount; i++) {
+		for (unsigned int i = 0; i < mediaCount; i++) {
 			if (std::holds_alternative<Description::Media *>(description.media(i))) {
 				auto media = std::get<Description::Media *>(description.media(i));
 				auto currentMediaType = lowercased(media->type());

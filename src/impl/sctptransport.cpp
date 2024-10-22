@@ -82,7 +82,7 @@ private:
 	std::shared_mutex mMutex;
 };
 
-std::unique_ptr<SctpTransport::InstancesSet> SctpTransport::Instances = std::make_unique<InstancesSet>();
+SctpTransport::InstancesSet *SctpTransport::Instances = new InstancesSet;
 
 void SctpTransport::Init() {
 	usrsctp_init(0, SctpTransport::WriteCallback, SctpTransport::DebugCallback);
